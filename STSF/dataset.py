@@ -105,32 +105,5 @@ def NETtalkTLoader(batch_size, T):
                               batch_size=batch_size, shuffle=True)
     return trainloader, testloader
 
-def DVSGestureLoader(batch_size, T):
-    transform = transforms.Compose([
-        transforms.ToFrame(sensor_size=tonic.datasets.DVSGesture.sensor_size, n_time_bins = T),
-        Resize((32,32)),
-        lambda x : x.reshape(x.shape[0], -1)
-    ])
-
-    trainloader = DataLoader(DiskCachedDataset(tonic.datasets.DVSGesture(save_to="/home/peace/code/DataSets", train=True, transform=transform), 
-                                               cache_path=f"/home/peace/code/DataSets/DVSGesture/cache/{T}/train"), 
-                            num_workers= 4, batch_size=batch_size, shuffle=True, collate_fn=tonic.collation.PadTensors(batch_first=True))
-    testloader = DataLoader(DiskCachedDataset(tonic.datasets.DVSGesture(save_to="/home/peace/code/DataSets", train=False, transform=transform), 
-                                               cache_path=f"/home/peace/code/DataSets/DVSGesture/cache/{T}/test"), 
-                            num_workers= 4, batch_size=batch_size, shuffle=False, collate_fn=tonic.collation.PadTensors(batch_first=True))
-    return trainloader, testloader
-
-def NMNISTLoader(batch_size, T):
-    transform = transforms.Compose([
-        transforms.ToFrame(sensor_size=tonic.datasets.NMNIST.sensor_size, n_time_bins = T),
-        lambda x : x.reshape(x.shape[0],-1)
-        ])
-    trainloader = DataLoader(DiskCachedDataset(tonic.datasets.NMNIST(save_to="/home/peace/code/DataSets", train=True, transform=transform), 
-                                               cache_path=f"/home/peace/code/DataSets/NMNIST/cache/{T}/train"), 
-                            num_workers= 4, batch_size=batch_size, shuffle=True, collate_fn=tonic.collation.PadTensors(batch_first=True))
-    testloader = DataLoader(DiskCachedDataset(tonic.datasets.NMNIST(save_to="/home/peace/code/DataSets", train=False, transform=transform), 
-                                               cache_path=f"/home/peace/code/DataSets/NMNIST/cache/{T}/test"), 
-                            num_workers= 4, batch_size=batch_size, shuffle=False, collate_fn=tonic.collation.PadTensors(batch_first=True))
-    return trainloader, testloader
 
 
