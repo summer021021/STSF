@@ -23,7 +23,7 @@ class ActFun(Function):
         grad_input = grad_output.clone()
         if not ctx.islast:
             grad_input = grad_input * spikes
-        # grad_input = grad_input * ~((grad_output < 0.) * (input > ctx.vmax))
+        grad_input = grad_input * ~((grad_output < 0.) * (input > ctx.vmax))
         return grad_input, None, None
     
 class LIF(nn.Module):
