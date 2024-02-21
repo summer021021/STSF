@@ -19,5 +19,5 @@ pip install -r requirements.txt
 Detailed usage of the script could be found in the source file.
 
 ```shell
-python main.py
+python main/main.py
 ```
