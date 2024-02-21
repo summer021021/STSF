@@ -22,9 +22,9 @@ def MNISTLoader(batch_size, T):
         Rate(T),
         Lambda(lambda x: torch.flatten(x,start_dim = 1))
         ])
-    trainloader = DataLoader(MNIST("/home/peace/code/Data", train=True, download=True, transform=transform), 
+    trainloader = DataLoader(MNIST("../Data", train=True, download=True, transform=transform), 
                              num_workers= 4, batch_size=batch_size, shuffle=True)
 
-    testloader = DataLoader(MNIST("/home/peace/code/Data", train=False, download=True, transform=transform), 
+    testloader = DataLoader(MNIST("../Data", train=False, download=True, transform=transform), 
                             num_workers= 4, batch_size=batch_size, shuffle=False)
     return trainloader, testloader
