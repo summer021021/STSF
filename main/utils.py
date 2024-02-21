@@ -8,13 +8,11 @@ def fit(model, train_loader, optimizer):
 
     train_loss, train_acc,n = 0, 0, 0
     for data, target in train_loader:
-        data, target = data.transpose(0, 1).cuda(), target.cuda()
-        # 重置膜电压    
+        data, target = data.transpose(0, 1).cuda(), target.cuda()  
         model.reset()
         output = None
         for i in range(data.shape[0]):
             optimizer.zero_grad()
-            # 运行
             out,loss = model.fit(data[i], target)
 
             if output is None:
@@ -38,12 +36,10 @@ def test(model, test_loader):
 
     test_acc,n = 0, 0
     for data, target in test_loader:
-        data, target = data.squeeze().transpose(0, 1).cuda(), target.squeeze().cuda()
-        # 重置膜电压    
+        data, target = data.squeeze().transpose(0, 1).cuda(), target.squeeze().cuda() 
         model.reset()
         output = None
         for i in range(data.shape[0]):
-            # 运行
             out = model(data[i])
 
             if output is None:
