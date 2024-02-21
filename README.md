@@ -1,8 +1,5 @@
 # STSF-SNN: Spiking Time Sparse Feedback Learning for Spiking Neural Networks
 
-<p align="center" float="center">
-  <img src="https://github.com/hppeace/STSF/blob/main/STSF.png" width=60%/>
-</p>
 
 ## How to Run
 
