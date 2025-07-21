@@ -56,7 +56,7 @@ def main():
     }
     scheduler = FIFOScheduler()
 
-    storage_path = "../Log"
+    storage_path = os.path.abspath("../Log")
     
     exp_name = "STSF_MNIST"
     path = os.path.join(storage_path, exp_name)
