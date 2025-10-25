@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 
-def fit(model, train_loader, optimizer, device):
+def fit(model, train_loader, lr, device):
     model.train()
 
     train_loss, train_acc,n = 0, 0, 0
@@ -12,18 +12,15 @@ def fit(model, train_loader, optimizer, device):
         model.reset()
         output = None
         for i in range(data.shape[0]):
-            optimizer.zero_grad()
-            out,loss = model.fit(data[i], target)
+            out, loss = model.fit(data[i], target, lr)
 
             if output is None:
                 output = out.clone()
             else:
                 output += out.clone()
-            loss.backward()
-            optimizer.step()
 
             train_loss += loss.item()
-            
+
         n += target.shape[0]
         pred = output.argmax(dim=1,keepdim=True)
         train_acc += pred.eq(target.view_as(pred)).sum().item()
