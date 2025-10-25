@@ -2,13 +2,12 @@ import math
 import torch
 import numpy as np
 
-def fit(model, train_loader, optimizer):
-    model.cuda()
+def fit(model, train_loader, optimizer, device):
     model.train()
 
     train_loss, train_acc,n = 0, 0, 0
     for data, target in train_loader:
-        data, target = data.transpose(0, 1).cuda(), target.cuda()  
+        data, target = data.transpose(0, 1).to(device), target.to(device)
         model.reset()
         output = None
         for i in range(data.shape[0]):
@@ -30,13 +29,12 @@ def fit(model, train_loader, optimizer):
         
     return train_loss / n, train_acc / n
 
-def test(model, test_loader):
-    model.cuda()
+def test(model, test_loader, device):
     model.eval()
 
     test_acc,n = 0, 0
     for data, target in test_loader:
-        data, target = data.squeeze().transpose(0, 1).cuda(), target.squeeze().cuda() 
+        data, target = data.transpose(0, 1).to(device), target.to(device)
         model.reset()
         output = None
         for i in range(data.shape[0]):
