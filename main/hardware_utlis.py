@@ -30,6 +30,10 @@ def fit(model, train_loader, lr, device):
 def test(model, test_loader, device):
     model.eval()
 
+    # for block in model.modlist:
+    #     print(block.synapse.weight.data.abs().max().item())
+    #     print(block.classifier.synapse.weight.data.abs().max().item())
+
     test_acc,n = 0, 0
     for data, target in test_loader:
         data, target = data.transpose(0, 1).to(device), target.to(device)

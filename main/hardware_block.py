@@ -1,8 +1,22 @@
 import torch
 import torch.nn as nn
 from utils import SFMatrix
-from torch.autograd import Function,grad
-import csv
+
+
+quantize_range = 1.0
+
+
+def WeightQuantize(weight):
+    """
+    Quantize weights to 8-bit integers.
+    
+    将权重量化为8位整数。
+    """
+    print(weight.abs().max())
+    weight = weight * quantize_range
+    # weight = torch.round(weight)
+    # weight = torch.clamp(weight, -quantize_range, quantize_range)
+    return weight
 
 
 class HardwareLIF(nn.Module):
@@ -28,7 +42,7 @@ class HardwareLIF(nn.Module):
 
         # 硬重置方式
         self.v = self.v * (1 - self.spikes) + x
-        self.spikes = (self.v > 1.).float()
+        self.spikes = (self.v > quantize_range).float()
 
         return self.spikes
     
@@ -49,6 +63,9 @@ class HardwareBlock(nn.Module):
         self.synapse = nn.Linear(in_features, out_features, bias=False)
         self.neuron = HardwareLIF()
         self.classifier = HardwareClassifier(out_features, n_class)
+
+        self.synapse.weight.data = nn.Parameter(WeightQuantize(self.synapse.weight.data))
+        self.classifier.synapse.weight.data = nn.Parameter(WeightQuantize(self.classifier.synapse.weight.data))
 
     def forward(self, input):
         deltaV = self.synapse(input)
@@ -76,13 +93,13 @@ class HardwareBlock(nn.Module):
             grad_w = torch.matmul(grad_deltaV.t(), input) / input.shape[0]  # [out_features, input_dim]
 
             # 5. 更新 synapse 权重
-            self.synapse.weight.data -= lr * grad_w
+            self.synapse.weight.data -= lr * grad_w * quantize_range
 
             # 6. 计算 classifier 权重变化量
             grad_w = torch.matmul(grad_output.t(), spike) / spike.shape[0]
 
             # 7. 更新 classifier 权重
-            self.classifier.synapse.weight.data -= lr * grad_w
+            self.classifier.synapse.weight.data -= lr * grad_w * quantize_range
 
         return spike.detach(), loss, output.detach()
     
@@ -134,7 +151,7 @@ class HardwareNet(nn.Module):
         return input
     
     def fit(self, input, labels, lr):
-        loss = torch.zeros(1,device=input.device)
+        loss = torch.zeros(1, device=input.device)
         labels = torch.nn.functional.one_hot(labels, self.nclass).float()
         for modle in self.modlist:
             input, loss, output = modle.fit(input, labels, lr, loss)
