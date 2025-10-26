@@ -21,6 +21,7 @@ def trainable(config):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network.to(device)
+    print("Using device:", device)
 
     best_acc = 0.0
     best_model = None

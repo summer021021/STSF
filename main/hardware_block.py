@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
+import math
 from utils import SFMatrix
 
 
 quantize_range = 128.0
 
 
-def WeightQuantize(weight):
+def weightQuantize(weight):
     """
     Quantize weights to 8-bit integers.
     
@@ -80,8 +81,14 @@ class HardwareBlock(nn.Module):
         self.neuron = HardwareLIF()
         self.classifier = HardwareClassifier(out_features, n_class)
 
-        self.synapse.weight.data = nn.Parameter(WeightQuantize(self.synapse.weight.data * 16))
-        self.classifier.synapse.weight.data = nn.Parameter(WeightQuantize(self.classifier.synapse.weight.data * 16))
+        # Quantize weights
+        self.synapse.weight = nn.Parameter(weightQuantize(self.synapse.weight * 16), requires_grad=False)
+        self.classifier.synapse.weight = nn.Parameter(weightQuantize(self.classifier.synapse.weight * 16), requires_grad=False)
+
+        fa_scale = (quantize_range - 1) / self.classifier.Fa.abs().max().item()
+        fa_scale = 2.0 ** math.floor(math.log2(fa_scale))
+        self.classifier.Fa = nn.Parameter(torch.round(self.classifier.Fa * fa_scale), requires_grad=False)
+        self.fa_scale = int(fa_scale)
 
     def forward(self, input):
         deltaV = self.synapse(input)
@@ -101,6 +108,7 @@ class HardwareBlock(nn.Module):
 
             # 2. 计算 classifier DFA梯度
             grad_dfa = torch.matmul(grad_output, self.classifier.Fa)  # [batch_size, out_features]
+            grad_dfa /= self.fa_scale
 
             # 3. 代理梯度：损失对 deltaV 的梯度
             grad_deltaV = grad_dfa * spike  # 这里 spike 作为代理梯度  # [batch_size, out_features]
