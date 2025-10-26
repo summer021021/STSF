@@ -13,8 +13,8 @@ def trainable(config):
     set_random_seed(config["seed"])
     epochs = config["epochs"]
     initial_lr = config["lr"]
-    decay_step = 5
-    decay_rate = 0.9
+    decay_step = 10
+    decay_rate = 0.5
 
     trainloader, testloader = MNISTLoader(config["batch_size"], config["T"])
     network = HardwareNet([config["inSize"]] + [config["layerSize"]] * config["nlayers"], nclass=config["nclass"])
@@ -22,6 +22,8 @@ def trainable(config):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     network.to(device)
 
+    best_acc = 0.0
+    best_model = None
     training_loss_record = []
     training_accuracy_record = []
     testing_accuracy_record = []
@@ -33,6 +35,11 @@ def trainable(config):
 
         training_loss_record.append(training_loss)
         training_accuracy_record.append(training_accuracy)
+
+        # Save the best model
+        if testing_accuracy > best_acc:
+            best_acc = testing_accuracy
+            best_model = network.state_dict()
         testing_accuracy_record.append(testing_accuracy)
     print("训练完成！")
 
@@ -53,17 +60,21 @@ def trainable(config):
     plt.legend()
     plt.savefig("hardware_network_accuracy_curve.png", dpi=300)
 
+    print(f"Best Test Accuracy: {best_acc:.4f}")
+    # Save the best model state_dict
+    torch.save(best_model, "best_hardware_model.pth")
+
 
 def main():
     config = {
         "epochs": 100,
         "batch_size": 128,
-        "lr": 5e-1,
-        "T": 10,
+        "lr": 1,
+        "T": 8,
         "nclass": 10,
         "inSize": 784,
         "nlayers": 2,
-        "layerSize": 800,
+        "layerSize": 1024,
         "seed": 0,
     }
     trainable(config)

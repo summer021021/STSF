@@ -3,7 +3,7 @@ import torch.nn as nn
 from utils import SFMatrix
 
 
-quantize_range = 1.0
+quantize_range = 128.0
 
 
 def WeightQuantize(weight):
@@ -12,11 +12,26 @@ def WeightQuantize(weight):
     
     将权重量化为8位整数。
     """
-    print(weight.abs().max())
-    weight = weight * quantize_range
-    # weight = torch.round(weight)
-    # weight = torch.clamp(weight, -quantize_range, quantize_range)
+    # print(weight.abs().max())
+    weight = weight * (quantize_range - 1)
+    weight = torch.round(weight)
+    weight = torch.clamp(weight, -quantize_range, quantize_range - 1)
     return weight
+
+
+def probRound(x):
+    """
+    Probabilistic rounding function.
+    
+    概率舍入函数，将输入张量的每个元素根据其小数部分进行概率舍入。
+    """
+    round_range = 256
+
+    floor_x = torch.floor(x)
+    prob = x - floor_x
+    prob = torch.round(prob * round_range)
+    rand = torch.randint_like(prob, low=0, high=round_range)
+    return floor_x + (rand < prob).float()
 
 
 class HardwareLIF(nn.Module):
@@ -42,7 +57,8 @@ class HardwareLIF(nn.Module):
 
         # 硬重置方式
         self.v = self.v * (1 - self.spikes) + x
-        self.spikes = (self.v > quantize_range).float()
+        self.spikes = (self.v >= quantize_range).float()
+        self.v = torch.clamp(self.v , -quantize_range, quantize_range - 1)
 
         return self.spikes
     
@@ -64,8 +80,8 @@ class HardwareBlock(nn.Module):
         self.neuron = HardwareLIF()
         self.classifier = HardwareClassifier(out_features, n_class)
 
-        self.synapse.weight.data = nn.Parameter(WeightQuantize(self.synapse.weight.data))
-        self.classifier.synapse.weight.data = nn.Parameter(WeightQuantize(self.classifier.synapse.weight.data))
+        self.synapse.weight.data = nn.Parameter(WeightQuantize(self.synapse.weight.data * 16))
+        self.classifier.synapse.weight.data = nn.Parameter(WeightQuantize(self.classifier.synapse.weight.data * 16))
 
     def forward(self, input):
         deltaV = self.synapse(input)
@@ -93,13 +109,17 @@ class HardwareBlock(nn.Module):
             grad_w = torch.matmul(grad_deltaV.t(), input) / input.shape[0]  # [out_features, input_dim]
 
             # 5. 更新 synapse 权重
-            self.synapse.weight.data -= lr * grad_w * quantize_range
+            # self.synapse.weight.data -= lr * grad_w * quantize_range
+            new_weight = self.synapse.weight.data - probRound(lr * grad_w * quantize_range)
+            self.synapse.weight.data = torch.clamp(new_weight, -quantize_range, quantize_range - 1)
 
             # 6. 计算 classifier 权重变化量
             grad_w = torch.matmul(grad_output.t(), spike) / spike.shape[0]
 
             # 7. 更新 classifier 权重
-            self.classifier.synapse.weight.data -= lr * grad_w * quantize_range
+            # self.classifier.synapse.weight.data -= lr * grad_w * quantize_range
+            new_weight = self.classifier.synapse.weight.data - probRound(lr * grad_w * quantize_range)
+            self.classifier.synapse.weight.data = torch.clamp(new_weight, -quantize_range, quantize_range - 1)
 
         return spike.detach(), loss, output.detach()
     
