@@ -23,6 +23,11 @@ def trainable(config):
     network.to(device)
     print("Using device:", device)
 
+    # print all named parameters (weights) and their shapes
+    print("Named parameters:")
+    for name, param in network.named_parameters():
+        print(f"  PARAM {name}: shape={tuple(param.shape)}, requires_grad={param.requires_grad}")
+
     best_acc = 0.0
     best_model = None
     training_loss_record = []

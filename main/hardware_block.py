@@ -88,7 +88,7 @@ class HardwareBlock(nn.Module):
         fa_scale = (quantize_range - 1) / self.classifier.Fa.abs().max().item()
         fa_scale = 2.0 ** math.floor(math.log2(fa_scale))
         self.classifier.Fa = nn.Parameter(torch.round(self.classifier.Fa * fa_scale), requires_grad=False)
-        self.fa_scale = int(fa_scale)
+        self.fa_scale = nn.Parameter(torch.tensor(fa_scale, dtype=torch.float32), requires_grad=False)
 
     def forward(self, input):
         deltaV = self.synapse(input)
@@ -118,7 +118,7 @@ class HardwareBlock(nn.Module):
 
             # 5. 更新 synapse 权重
             # self.synapse.weight.data -= lr * grad_w * quantize_range
-            new_weight = self.synapse.weight.data - probRound(lr * grad_w * quantize_range)
+            new_weight = self.synapse.weight - probRound(lr * grad_w * quantize_range)
             self.synapse.weight.data = torch.clamp(new_weight, -quantize_range, quantize_range - 1)
 
             # 6. 计算 classifier 权重变化量
@@ -126,7 +126,7 @@ class HardwareBlock(nn.Module):
 
             # 7. 更新 classifier 权重
             # self.classifier.synapse.weight.data -= lr * grad_w * quantize_range
-            new_weight = self.classifier.synapse.weight.data - probRound(lr * grad_w * quantize_range)
+            new_weight = self.classifier.synapse.weight - probRound(lr * grad_w * quantize_range)
             self.classifier.synapse.weight.data = torch.clamp(new_weight, -quantize_range, quantize_range - 1)
 
         return spike.detach(), loss, output.detach()
